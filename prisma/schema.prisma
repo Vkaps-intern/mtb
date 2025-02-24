@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  fullName      String?
+  password      String?
+  avatar        String?
+  jpBalance     Int       @default(0)
+  provider      String?   // "email" | "google"
+  providerId    String?   // For OAuth providers
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  transactions  Transaction[]
+  buddies       Buddy[]
+}
+
+model Transaction {
+  id          String    @id @default(cuid())
+  userId      String
+  amount      Int
+  type        String    // "credit" | "debit"
+  title       String
+  description String?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model Buddy {
+  id          String    @id @default(cuid())
+  userId      String
+  buddyId     String
+  status      String    // "Full Access" | "Limited Access"
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id])
+} 

@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .dashboard-card {
+    @apply bg-white rounded-xl p-6 shadow-sm;
+  }
+  
+  .dashboard-title {
+    @apply text-xl font-bold mb-6;
+  }
+  
+  .dashboard-button {
+    @apply px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+} 
