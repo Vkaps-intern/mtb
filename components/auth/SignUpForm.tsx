@@ -28,6 +28,7 @@ export default function SignUpForm() {
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true)
+      console.log("data",data)
     try {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
