@@ -61,6 +61,28 @@ export default function SignInForm() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signIn("google", {
+        callbackUrl: "/dashboard",
+        redirect: false,
+      });
+      console.log(result);
+      if (result?.error) {
+        console.log("error", result.error);
+        toast.error("Google Sign failed. Please try again later.");
+      }
+    } catch (error) {
+      console.error("Error signing in", error); //?dev
+      toast.error(
+        getAxiosErrorMessage(
+          error,
+          "Google Sign failed. Please try again later."
+        )
+      );
+    }
+  };
+
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -91,7 +113,7 @@ export default function SignInForm() {
         </div>
 
         <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center space-x-2" >
+          <label className="flex items-center space-x-2">
             <input
               type="checkbox"
               className="rounded border-gray-300"
@@ -128,9 +150,7 @@ export default function SignInForm() {
       <Button
         variant="outline"
         className="w-full h-12 text-[16px] flex items-center justify-center space-x-2"
-        onClick={() => {
-          /* Implement Google sign in */
-        }}
+        onClick={handleGoogleLogin}
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path
