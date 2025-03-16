@@ -1,4 +1,4 @@
-import { AuthProvider, PrismaClient } from "@prisma/client";
+import { AuthMethod, PrismaClient } from "@prisma/client";
 import { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -6,8 +6,8 @@ import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
-const DEFAULT_MAX_AGE = 60 * 60;
-const REMEMBER_ME_MAX_AGE = 7 * 12 * 60 * 60;
+const DEFAULT_MAX_AGE = 45 * 60;
+const REMEMBER_ME_MAX_AGE = 7 * 24 * 60 * 60;
 
 export const authConfig: AuthOptions = {
   providers: [
@@ -20,7 +20,7 @@ export const authConfig: AuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        rememberMe: { label: "Remember Me", type: "checkbox" }, // <-- Added Remember Me
+        rememberMe: { label: "Remember Me", type: "checkbox" }, 
       },
       async authorize(credentials) {
         try {
@@ -29,6 +29,7 @@ export const authConfig: AuthOptions = {
           const user = await prisma.user.findUnique({
             where: {
               email: credentials?.email,
+              authMethod: AuthMethod.CREDENTIALS, // Ensures authentication method matches - prevents Google OAuth users from using password login
             },
           });
           if (!user) {
@@ -65,8 +66,13 @@ export const authConfig: AuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user }) {
-      console.log("signIn", user);
+    async signIn({ user, account }) {
+      // console.log("signIn", user, account); // Debugging
+
+      // Skip logic for Credentials login, as it's already handled in `authorize`
+      if (account?.provider === "credentials") {
+        return true; // Allow login immediately
+      }
 
       try {
         const dbUser = await prisma.user.findUnique({
@@ -75,27 +81,34 @@ export const authConfig: AuthOptions = {
           },
         });
         console.log("user exists info", dbUser);
-        // throw new Error("User already exists"); // Throw error instead of returning a URL
 
         if (!dbUser) {
           // if user does not exist, create a new user and let signin
           const role = user.email === process.env.ADMIN_MAIL ? "ADMIN" : "USER";
           console.log(role);
 
-          // ! Role should only be passes if user isVerified else not atlest for the ADMIN
           const createdUser = await prisma.user.create({
             data: {
               role: role,
               email: user.email!,
               name: user.name!,
               image: user.image ? user.image : "",
-              authProvider: AuthProvider.GOOGLE,
+              authMethod: AuthMethod.GOOGLE,
             },
           });
           console.log("user created info", createdUser);
           user.role = createdUser.role;
           user.id = createdUser.id;
         } else {
+          // Update user data if it has changed
+          const updatedUser = await prisma.user.update({
+            where: { email: user.email! },
+            data: {
+              name: user.name!,
+              image: user.image ? user.image : "",
+            },
+          });
+          console.log("user updated info", updatedUser);
           // Use dbUser data for existing users
           user.role = dbUser.role;
           user.id = dbUser.id;
@@ -104,12 +117,11 @@ export const authConfig: AuthOptions = {
         return true;
       } catch (error) {
         console.error("Error saving user:", error);
-        // return `/login?error=Something went wrong`; // Redirect with error
-        // throw new Error("Something went wrong"); // Throw a readable error
         return false;
       }
     },
     async jwt({ token, user }) {
+      console.log("check user", user);
       if (user) {
         token.role = user.role; // Now user.role exists because we added it in `signIn`
         token.id = user.id;
@@ -130,9 +142,10 @@ export const authConfig: AuthOptions = {
         session.user.role = token.role; // Attach role to session
         session.user.id = token.id;
         session.user.rememberMe = token.rememberMe;
-        // session.maxAge =
-        //   Math.floor(Date.now() / 1000) +
-        //   (token.rememberMe ? REMEMBER_ME_MAX_AGE : DEFAULT_MAX_AGE);
+        // session.expires = new Date(
+        //   Date.now() +
+        //     (token.rememberMe ? REMEMBER_ME_MAX_AGE : DEFAULT_MAX_AGE) * 1000
+        // ).toISOString();
       }
       console.log("sessiondata", session); //?dev
       return session;

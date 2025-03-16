@@ -29,28 +29,22 @@ export default function SignInForm() {
     try {
       // const res = await axios.post("/api/auth/signin", data);
       const res = await signIn("credentials", {
-        callbackUrl: "/dashboard",
+        // callbackUrl: "/dashboard",
         redirect: false,
         email: data.email,
         password: data.password,
+        rememberMe: data.rememberMe,
       });
-      console.log(res); //?dev
+      console.log("res", res); //?dev
       if (res?.ok) {
-        router.push("/");
+        router.push("/dashboard");
         toast.success("Signed in successfully");
         return;
       }
       if (res?.error) {
-        toast.error(
-          getAxiosErrorMessage(res, "Sign in failed. Please try again later.")
-        );
-        // return;
+        console.log("error", res.error);
+        toast.error(res.error ?? "Sign in failed. Please try again later.");
       }
-
-      // if (res.status >= 200 && res.status < 300) {
-      // router.refresh();
-      // return;
-      // }
     } catch (error) {
       console.error("Signin error:", error);
       toast.error(
