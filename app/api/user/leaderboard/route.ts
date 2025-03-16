@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 /**
  * * considerations
- * - cache
+ * - cache  --- //* DONE
  * - rate limit
  *
  */
