@@ -1,1 +1,3 @@
-{}
+{
+  "/api/user/leaderboard/route": "app/api/user/leaderboard/route.js"
+}

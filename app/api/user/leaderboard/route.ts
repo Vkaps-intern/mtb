@@ -1,18 +1,17 @@
-const revalidate = 10 * 60; // 10 minutes
+export const revalidate = 10 * 60; // 10 minutes
 
 import { PrismaClient } from "@prisma/client";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
-// TODO: add pagination
 /**
  * * considerations
  * - cache
- * - rate limit 
- * 
+ * - rate limit
+ *
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     //! commented this just authorization code for testing
     // const session = await getServerSession(authConfig);
@@ -20,18 +19,24 @@ export async function GET() {
     // if (!session)
     //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const searchParams = request.nextUrl.searchParams;
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const skip = (page - 1) * limit;
+
     const users = await prisma.user.findMany({
       orderBy: {
         jpEarned: "desc",
       },
-      include: {
+      // include: {
         // transaction: true,
-        _count: true,
-      },
+      // },
       omit: {
         password: true,
       },
-      take: 10,
+      take: limit,
+      skip: skip,
+      
     });
     console.log(users); //?dev
     if (!users) {
@@ -46,7 +51,7 @@ export async function GET() {
     });
 
     return NextResponse.json(
-      { users: updatedUsers, message: "success" }, // Fixed typo from "sucess"
+      { users: updatedUsers, message: "success", page, limit }, // Fixed typo from "sucess"
       { status: 200 }
     );
   } catch (error) {
