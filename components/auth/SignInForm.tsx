@@ -36,7 +36,7 @@ export default function SignInForm() {
       });
       console.log(res); //?dev
       if (res?.ok) {
-        router.push("/");
+        router.push("/dashboard");
         toast.success("Signed in successfully");
         return;
       }
@@ -91,7 +91,7 @@ export default function SignInForm() {
         </div>
 
         <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center space-x-2" >
+          <label className="flex items-center space-x-2">
             <input
               type="checkbox"
               className="rounded border-gray-300"

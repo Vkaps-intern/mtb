@@ -6,7 +6,7 @@ import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
-const DEFAULT_MAX_AGE =  60* 60;
+const DEFAULT_MAX_AGE = 60 * 60;
 const REMEMBER_ME_MAX_AGE = 7 * 12 * 60 * 60;
 
 export const authConfig: AuthOptions = {
@@ -25,7 +25,7 @@ export const authConfig: AuthOptions = {
       async authorize(credentials) {
         try {
           // Find user in DB
-          console.log("credentials", credentials);
+          // console.log("credentials", credentials);
           const user = await prisma.user.findUnique({
             where: {
               email: credentials?.email,
@@ -66,7 +66,7 @@ export const authConfig: AuthOptions = {
   ],
   callbacks: {
     async signIn({ user }) {
-      console.log("signIn", user);
+      // console.log("signIn", user);
 
       try {
         const dbUser = await prisma.user.findUnique({
@@ -74,13 +74,13 @@ export const authConfig: AuthOptions = {
             email: user.email!,
           },
         });
-        console.log("user exists info", dbUser);
+        // console.log("user exists info", dbUser);
         // throw new Error("User already exists"); // Throw error instead of returning a URL
 
         if (!dbUser) {
           // if user does not exist, create a new user and let signin
           const role = user.email === process.env.ADMIN_MAIL ? "ADMIN" : "USER";
-          console.log(role);
+          // console.log(role);
 
           // ! Role should only be passes if user isVerified else not atlest for the ADMIN
           const createdUser = await prisma.user.create({
@@ -91,7 +91,7 @@ export const authConfig: AuthOptions = {
               image: user.image ? user.image : "",
             },
           });
-          console.log("user created info", createdUser);
+          // console.log("user created info", createdUser);
           user.role = createdUser.role;
           user.id = createdUser.id;
         } else {
@@ -113,19 +113,19 @@ export const authConfig: AuthOptions = {
         token.role = user.role; // Now user.role exists because we added it in `signIn`
         token.id = user.id;
         token.rememberMe = user.rememberMe ?? false;
-        console.log("remeberme tokencheck", token.rememberMe); //?dev
+        // console.log("remeberme tokencheck", token.rememberMe); //?dev
 
         token.maxAge =
           Math.floor(Date.now() / 1000) +
           (user.rememberMe ? REMEMBER_ME_MAX_AGE : DEFAULT_MAX_AGE);
       }
-      console.log("token", token); //?dev
+      // console.log("token", token); //?dev
       return token;
     },
 
     async session({ session, token }) {
       if (session.user) {
-        console.log("token.role", token.role);
+        // console.log("token.role", token.role);
         session.user.role = token.role; // Attach role to session
         session.user.id = token.id;
         session.user.rememberMe = token.rememberMe;
@@ -133,7 +133,7 @@ export const authConfig: AuthOptions = {
         //   Math.floor(Date.now() / 1000) +
         //   (token.rememberMe ? REMEMBER_ME_MAX_AGE : DEFAULT_MAX_AGE);
       }
-      console.log("sessiondata", session); //?dev
+      // console.log("sessiondata", session); //?dev
       return session;
     },
   },
