@@ -29,7 +29,6 @@ export async function GET(request: NextRequest) {
         jpEarned: "desc",
       },
       // include: {
-        // transaction: true,
       // },
       omit: {
         password: true,
