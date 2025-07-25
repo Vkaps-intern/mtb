@@ -37,7 +37,7 @@ export default function Page() {
   useOnlineUserLeaderBoard();
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
+    <div className="flex min-h-screen pt-40 justify-center p-4">
       <div className="w-full max-w-5xl">
         {/* Responsive heading: smaller on mobile, larger on desktop */}
         <h1 className="mb-8 text-center text-4xl font-extrabold text-indigo-900 drop-shadow-lg md:mb-10 md:text-5xl">

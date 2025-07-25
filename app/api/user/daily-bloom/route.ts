@@ -5,8 +5,6 @@ import { assignJp } from "@/lib/utils/jp";
 import { ActivityType, Prisma } from "@prisma/client";
 import { DailyBloomFormType } from "@/schema/zodSchema";
 
-
-
 const nextDateUTC = (
   startDate: Date,
   frequency: "Daily" | "Weekly" | "Monthly"
@@ -59,9 +57,6 @@ export async function GET(request: NextRequest) {
           updatePromises.push(
             prisma.todo.update({
               where: { id: task.id },
-              // --- THE DEFINITIVE FIX ---
-              // When a recurring task resets, we set isCompleted to false
-              // AND we explicitly set its dueDate to null.
               data: { 
                 isCompleted: false,
                 dueDate: null 
@@ -76,7 +71,6 @@ export async function GET(request: NextRequest) {
     }
     // --- End of Recurring Task Logic ---
 
-    // The rest of your GET request logic remains the same...
     const { searchParams } = request.nextUrl;
     const frequency = searchParams.get("frequency");
     const status = searchParams.get("status");
@@ -100,7 +94,9 @@ export async function GET(request: NextRequest) {
         Prisma.sql`("dueDate" IS NULL OR "dueDate" >= ${startOfTodayUTC})`,
       ];
       if (frequency && frequency !== "All") {
-        whereConditions.push(Prisma.sql`"frequency" = ${frequency}`);
+        // --- THIS IS THE FIX ---
+        // We must explicitly cast the text 'frequency' parameter to the "Frequency" enum type in PostgreSQL.
+        whereConditions.push(Prisma.sql`"frequency" = ${frequency}::"Frequency"`);
       }
       const whereSql = Prisma.sql`WHERE ${Prisma.join(whereConditions, " AND ")}`;
 
@@ -147,15 +143,24 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({ data: blooms, totalCount });
     }
-  } catch (e) {
-    console.error(e);
+  } catch (error: unknown) {
+    // --- CORRECTED ERROR HANDLING ---
+    // This is the proper, type-safe way to handle errors.
+    if (error instanceof Error) {
+        console.error("Failed to fetch blooms:", error.message);
+        return NextResponse.json(
+            { message: "Failed to fetch blooms", error: error.message },
+            { status: 500 }
+        );
+    }
+    // Handle cases where something other than an Error was thrown
+    console.error("An unknown error occurred:", error);
     return NextResponse.json(
-      { message: "Failed to fetch blooms" },
-      { status: 500 }
+        { message: "An unknown error occurred while fetching blooms" },
+        { status: 500 }
     );
   }
 }
-
 
 // The POST function remains completely unchanged.
 export async function POST(req: NextRequest) {
