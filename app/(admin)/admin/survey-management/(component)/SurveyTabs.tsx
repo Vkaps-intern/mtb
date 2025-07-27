@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // 1. Import useEffect
 import { CategoryManager } from "./CategoryManager";
 import { QuestionManager } from "./QuestionManager";
 import { ImportManager } from "./ImportManager";
@@ -11,8 +11,19 @@ import { cn } from "@/lib/utils/tw";
 
 type Tab = "categories" | "questions" | "import";
 
-export function SurveyTabs({ categories, questions }: { categories: CategoryWithQuestions[], questions: QuestionWithCategory[] }) {
+export function SurveyTabs({ data, questions }: { data: CategoryWithQuestions[], questions: QuestionWithCategory[] }) {
   const [activeTab, setActiveTab] = useState<Tab>("categories");
+  const [categories, setCategories] = useState<CategoryWithQuestions[]>(data);
+
+  // 2. Remove the incorrect state update from here
+  // if (data){
+  //  setCategories(data);
+  // }
+
+  // 3. Use useEffect to sync state with the 'data' prop
+  useEffect(() => {
+    setCategories(data);
+  }, [data]); // This will only run when the 'data' prop changes
 
   // Use SWR to fetch questions for instant UI update
   const { data: swrQuestions, mutate } = useSWR("/api/survey/question/list", fetcher, {
