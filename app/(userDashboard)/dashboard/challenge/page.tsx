@@ -30,7 +30,6 @@ type Challenge = ChallengeDetailsForClient & {
   cardType?: "myChallenge" | "upcoming";
 };
 
-// Expanded filter type to include all possible filter values
 type FilterStatus = Challenge["status"] | "ALL" | "HOSTED" | "JOINED";
 
 // --- API Calls ---
@@ -48,13 +47,13 @@ const fetchMyChallenges = async () => {
   const hostedChallenges = hostedRes.data.map((c: ChallengeDetailsForClient) => ({
     ...c,
     isHosted: true,
-    cardType: "myChallenge" as const,
+    cardType: "myChallenge",
   }));
 
   const joinedChallenges = joinedRes.data.map((c: ChallengeDetailsForClient) => ({
     ...c,
     isHosted: false,
-    cardType: "myChallenge" as const,
+    cardType: "myChallenge",
   }));
 
   return [...hostedChallenges, ...joinedChallenges];
@@ -71,13 +70,11 @@ const formatDate = (date: string) =>
 // --- Main Component ---
 export default function ChallengePage() {
   const router = useRouter();
-  const { status: authStatus } = useSession();
+  const { status } = useSession();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [searchVisible, setSearchVisible] = useState(false);
-  // State for multi-select filters, initialized to 'ALL'
-  const [selectedFilters, setSelectedFilters] = useState<FilterStatus[]>(['ALL']);
-  const [isDefaultFilterSet, setIsDefaultFilterSet] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<FilterStatus>("ALL");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const searchRef = useRef(null);
@@ -88,7 +85,7 @@ export default function ChallengePage() {
   const { data: myChallenges, isLoading: loadingMy } = useQuery<Challenge[]>({
     queryKey: ["myChallenges"],
     queryFn: fetchMyChallenges,
-    enabled: authStatus === "authenticated",
+    enabled: status === "authenticated",
   });
 
   const { data: upcomingChallenges, isLoading: loadingUpcoming } = useQuery<
@@ -98,46 +95,33 @@ export default function ChallengePage() {
     queryFn: fetchUpcomingChallenges,
   });
 
-  const myIds = new Set(myChallenges?.map((c) => c.id) || []);
+  const myIds = new Set(myChallenges?.map((c) => c.id));
   const availableChallenges =
     upcomingChallenges
       ?.filter((c) => !myIds.has(c.id))
       .map((c) => ({
         ...c,
-        status: "UPCOMING" as const,
-        cardType: "upcoming" as const,
+        status: "UPCOMING",
+        cardType: "upcoming",
       })) || [];
   const all = [...(myChallenges || []), ...availableChallenges];
 
-  // Effect to set default filters based on user status and participation
   useEffect(() => {
-    // Exit if defaults are already set, or if we are waiting for auth status or myChallenges data
-    if (isDefaultFilterSet || authStatus === 'loading' || (authStatus === 'authenticated' && !myChallenges)) {
-      return;
-    }
-
-    if (authStatus === 'unauthenticated') {
-      // Not logged in: default to Upcoming
-      setSelectedFilters(['UPCOMING']);
-      setIsDefaultFilterSet(true);
-    } else if (authStatus === 'authenticated' && myChallenges) {
-      const hasHosted = myChallenges.some((c) => c.isHosted);
+    if (status !== "authenticated") {
+      setSelectedStatus("UPCOMING");
+    } else if (myChallenges) { 
       const hasJoined = myChallenges.some((c) => !c.isHosted);
-
-      if (hasHosted) {
-        // Hosted/Logged In: default to Hosted and Active
-        setSelectedFilters(['HOSTED', 'ACTIVE']);
-      } else if (hasJoined) {
-        // Logged in and joined: default to Active and Joined
-        setSelectedFilters(['ACTIVE', 'JOINED']);
+      const hasHosted = myChallenges.some((c) => c.isHosted);
+      
+      if (hasJoined) {
+        setSelectedStatus("JOINED");
+      } else if (hasHosted) {
+        setSelectedStatus("HOSTED");
       } else {
-        // Logged in but not joined/hosted: default to Upcoming
-        setSelectedFilters(['UPCOMING']);
+        setSelectedStatus("UPCOMING");
       }
-      setIsDefaultFilterSet(true);
     }
-  }, [authStatus, myChallenges, isDefaultFilterSet]);
-
+  }, [status, myChallenges]);
 
   useEffect(() => {
     if (searchVisible) {
@@ -145,56 +129,17 @@ export default function ChallengePage() {
     }
   }, [searchVisible]);
 
-  // Handler for multi-select filter clicks
-  const handleFilterClick = (filter: FilterStatus) => {
-    // Prevent changing filters until the default is set
-    if (!isDefaultFilterSet) return;
-
-    setSelectedFilters((prev) => {
-      // If 'ALL' is clicked, it becomes the only selection.
-      if (filter === 'ALL') {
-        return ['ALL'];
-      }
-
-      // Start with a new array, removing 'ALL' if it was there before.
-      let newFilters = prev.includes('ALL') ? [] : [...prev];
-
-      const index = newFilters.indexOf(filter);
-      if (index > -1) {
-        // If the filter exists, remove it.
-        newFilters.splice(index, 1);
-      } else {
-        // Otherwise, add it.
-        newFilters.push(filter);
-      }
-
-      // If no filters are left after removal, default back to 'ALL'.
-      if (newFilters.length === 0) {
-        return ['ALL'];
-      }
-
-      return newFilters;
-    });
-  };
-
   const filtered = all
     .filter((c) => {
-      // If 'ALL' is selected or no filters are chosen, show all challenges.
-      if (selectedFilters.includes('ALL')) {
-        return true;
-      }
-      // Check if the challenge matches ANY of the selected filters.
-      return selectedFilters.some(filter => {
-        if (filter === 'HOSTED') return c.isHosted === true;
-        if (filter === 'JOINED') return c.isHosted === false && c.cardType === 'myChallenge';
-        // Handles 'ACTIVE', 'UPCOMING', 'COMPLETED' by matching the challenge status.
-        return c.status === filter;
-      });
+      if (selectedStatus === "ALL") return true;
+      if (selectedStatus === "HOSTED") return c.isHosted === true;
+      if (selectedStatus === "JOINED") return c.isHosted === false && c.cardType === "myChallenge";
+      return c.status === selectedStatus;
     })
     .filter((c) => c.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const handleCreateClick = () => {
-    if (authStatus === "authenticated") {
+    if (status === "authenticated") {
       setIsModalOpen(true);
     } else {
       toast.error("Login to create a challenge.");
@@ -217,64 +162,64 @@ export default function ChallengePage() {
   ];
 
   const formatFilterLabel = (label: string) => {
-    if (label === "JOINED") return "Joined";
-    return label.charAt(0) + label.slice(1).toLowerCase();
-  };
+      if (label === "JOINED") return "Joined";
+      return label.charAt(0) + label.slice(1).toLowerCase();
+  }
 
   return (
     <div className="min-h-screen w-full p-4 sm:p-6 lg:p-8">
       <div className="flex justify-between items-center w-full mb-4">
         <div>
-          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogTrigger asChild>
-              <button
-                onClick={handleCreateClick}
-                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 transition"
-              >
-                <PlusCircle size={28} />
-                <span className="font-semibold hidden sm:inline">Create</span>
-              </button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-              <CreateChallenge onSuccess={() => setIsModalOpen(false)} />
-            </DialogContent>
-          </Dialog>
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+              <DialogTrigger asChild>
+                <button
+                  onClick={handleCreateClick}
+                  className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 transition"
+                >
+                  <PlusCircle size={28} />
+                  <span className="font-semibold hidden sm:inline">Create</span>
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                <CreateChallenge onSuccess={() => setIsModalOpen(false)} />
+              </DialogContent>
+            </Dialog>
         </div>
         <div className="flex-1 text-center px-4">
-          <h1 className="text-4xl font-extrabold text-indigo-900">Challenges</h1>
+            <h1 className="text-4xl font-extrabold text-indigo-900">Challenges</h1>
         </div>
         <div>
-          <div className="relative" ref={searchRef}>
-            <button
-              onClick={() => setSearchVisible((prev) => !prev)}
-              className="p-1 rounded-full hover:bg-gray-100 transition"
-              aria-label="Toggle search"
-            >
-              <Search size={24} className="text-gray-600" />
-            </button>
-            {searchVisible && (
-              <div className="absolute right-0 top-10 z-20 bg-white border border-gray-300 rounded-lg shadow-lg p-2 w-72 flex items-center gap-2 animate-fade-in transition">
-                <Search size={16} className="text-gray-400" />
-                <input
-                  ref={inputRef}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Search challenges..."
-                  className="flex-1 text-sm bg-transparent focus:outline-none"
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm("")}
-                    className="text-gray-400 hover:text-gray-600 text-lg px-1"
-                    aria-label="Clear search"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+            <div className="relative" ref={searchRef}>
+              <button
+                onClick={() => setSearchVisible((prev) => !prev)}
+                className="p-1 rounded-full hover:bg-gray-100 transition"
+                aria-label="Toggle search"
+              >
+                <Search size={24} className="text-gray-600" />
+              </button>
+              {searchVisible && (
+                <div className="absolute right-0 top-10 z-20 bg-white border border-gray-300 rounded-lg shadow-lg p-2 w-72 flex items-center gap-2 animate-fade-in transition">
+                  <Search size={16} className="text-gray-400" />
+                  <input
+                    ref={inputRef}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Search challenges..."
+                    className="flex-1 text-sm bg-transparent focus:outline-none"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="text-gray-400 hover:text-gray-600 text-lg px-1"
+                      aria-label="Clear search"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
         </div>
       </div>
       
@@ -284,18 +229,18 @@ export default function ChallengePage() {
 
       {/* Filters */}
       <div className="flex flex-wrap justify-center gap-2 mb-10">
-        {filterOptions.map((filter) => (
+        {filterOptions.map((status) => (
           <button
-            key={filter}
-            onClick={() => handleFilterClick(filter)}
+            key={status}
+            onClick={() => setSelectedStatus(status)}
             className={cn(
               "px-5 py-2 text-sm font-semibold rounded-full transition",
-              selectedFilters.includes(filter)
+              selectedStatus === status
                 ? "bg-indigo-600 text-white shadow-md"
                 : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-100"
             )}
           >
-            {formatFilterLabel(filter)}
+            {formatFilterLabel(status)}
           </button>
         ))}
       </div>
@@ -306,7 +251,7 @@ export default function ChallengePage() {
           <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
         </div>
       ) : filtered.length === 0 ? (
-        <p className="text-center text-slate-500">No challenges found for the selected filters.</p>
+        <p className="text-center text-slate-500">No challenges found.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((c) => (
@@ -323,8 +268,9 @@ export default function ChallengePage() {
               }
               className="relative overflow-hidden bg-white rounded-xl shadow hover:shadow-lg p-6 border cursor-pointer flex flex-col transition hover:-translate-y-1"
             >
+              {/* --- MODIFICATION: New ribbon logic --- */}
               
-              {/* Hosted Ribbon */}
+              {/* Hosted Ribbon (Top-Left) */}
               {c.isHosted && (
                 <div 
                   className="absolute top-4 -right-9 transform rotate-45 bg-teal-500 text-center text-white text-sm font-semibold py-1 w-32"
@@ -334,9 +280,9 @@ export default function ChallengePage() {
                 </div>
               )}
 
-              {/* Status & Type Ribbons */}
+              {/* Status Ribbons (Top-Right) */}
               {c.status === 'COMPLETED' ? (
-                  <div 
+                 <div 
                   className="absolute top-4 -right-9 transform rotate-45 bg-slate-500 text-center text-white text-sm font-semibold py-1 w-32"
                   aria-label="Completed Challenge"
                 >
@@ -350,7 +296,7 @@ export default function ChallengePage() {
                   Joined
                 </div>
               ) : c.cardType === 'upcoming' ? (
-                  <div 
+                 <div 
                   className="absolute top-4 -right-9 transform rotate-45 bg-sky-500 text-center text-white text-sm font-semibold py-1 w-32"
                   aria-label="Upcoming Challenge"
                 >
@@ -359,6 +305,7 @@ export default function ChallengePage() {
               ) : null}
 
 
+              {/* --- MODIFICATION: Title is now left-aligned with padding to avoid ribbons --- */}
               <div className="mb-2 pt-4">
                 <h3 className="text-xl font-bold text-indigo-800 truncate">{c.title}</h3>
               </div>
