@@ -673,6 +673,61 @@ model Event {
   allDay      Boolean   @default(false)
 }
 
+model Group {
+  id             String          @id @default(cuid())
+  name           String
+  description    String?
+
+  visibility     Visibility      @default(MEMBERS_CAN_SEE_GOALS)
+  cycleDuration  CycleDuration   @default(MONTHLY)
+  progressStage  ProgressStage   @default(GOAL_END)
+  notesPrivacy   NotesPrivacy    @default(NOTES_VISIBLE_TO_ALL)
+
+  coachId        String
+  // Remove foreign key relation
+  // coach          User          @relation(fields: [coachId], references: [id])
+
+  members        GroupMember[]
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model GroupMember {
+  id        String   @id @default(cuid())
+  userId    String
+  groupId   String
+
+  // Remove relation to User
+  // user      User     @relation(fields: [userId], references: [id])
+  group     Group    @relation(fields: [groupId], references: [id])
+
+  joinedAt  DateTime @default(now())
+
+  @@unique([userId, groupId])
+}
+
+enum Visibility {
+  MEMBERS_CAN_SEE_GOALS
+  COACH_ONLY_SEES_GOALS
+}
+
+enum CycleDuration {
+  MONTHLY
+  QUARTERLY
+  CUSTOM
+}
+
+enum ProgressStage {
+  GOAL_END
+  GOAL_MID_END
+}
+
+enum NotesPrivacy {
+  NOTES_VISIBLE_TO_ALL
+  NOTES_VISIBLE_TO_COACH
+}
+
 enum Audience {
   EVERYONE
   PAID
