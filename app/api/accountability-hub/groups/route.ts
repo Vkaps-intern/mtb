@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import {
   Visibility,
   ProgressStage,
@@ -16,16 +17,19 @@ import { logActivity } from "@/lib/activity-logger";
 // Mappings from form values to Prisma enums
 const visibilityMap: Record<string, Visibility> = {
   members_visible: Visibility.MEMBERS_CAN_SEE_GOALS,
-  admin_only: Visibility.ADMIN_ONLY,
+  admin_only: Visibility.PRIVATE, // map admin_only to PRIVATE
 };
+
 const progressStageMap: Record<string, ProgressStage> = {
-  "2_stage": ProgressStage.TWO_STAGE,
-  "3_stage": ProgressStage.THREE_STAGE,
+  "2_stage": ProgressStage.IN_PROGRESS, // map 2_stage to IN_PROGRESS
+  "3_stage": ProgressStage.NOT_STARTED, // map 3_stage to NOT_STARTED
 };
+
 const notesPrivacyMap: Record<string, NotesPrivacy> = {
-  member_and_admin: NotesPrivacy.MEMBER_AND_ADMIN,
-  admin_only: NotesPrivacy.ADMIN_ONLY,
+  member_and_admin: NotesPrivacy.VISIBLE_TO_GROUP, // map to VISIBLE_TO_GROUP
+  admin_only: NotesPrivacy.PRIVATE_TO_AUTHOR, // map admin_only to PRIVATE_TO_AUTHOR
 };
+
 
 export async function POST(req: Request) {
   try {
@@ -41,31 +45,36 @@ export async function POST(req: Request) {
     if (!groupName) {
       return NextResponse.json({ error: "Group name is required" }, { status: 400 });
     }
-
-    const newGroup = await prisma.group.create({
-      data: {
-        name: groupName,
-        description: description,
-        coachId: coachId,
-        visibility: visibilityMap[visibility] || Visibility.MEMBERS_CAN_SEE_GOALS,
-        progressStage: progressStageMap[stages] || ProgressStage.THREE_STAGE,
-        notesPrivacy: notesPrivacyMap[notesPrivacy] || NotesPrivacy.MEMBER_AND_ADMIN,
-        cycleDuration: CycleDuration.MONTHLY,
-        members: {
-          create: {
-            userId: coachId,
-            role: Role.ADMIN, // <-- THIS IS THE FIX (was "admin")
-          },
-        },
-        cycles: {
-          create: {
-            startDate: new Date(),
-            endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
-            status: "active",
-          },
-        },
+const newGroup = await prisma.group.create({
+  data: {
+    name: groupName,
+    description: description,
+    creatorId: coachId, // ✅ required
+    coachId: coachId,
+    visibility: visibilityMap[visibility] || Visibility.MEMBERS_CAN_SEE_GOALS,
+    progressStage: progressStageMap[stages] || ProgressStage.NOT_STARTED,
+    notesPrivacy: notesPrivacyMap[notesPrivacy] || NotesPrivacy.VISIBLE_TO_GROUP,
+    cycleDuration: CycleDuration.MONTHLY,
+    members: {
+      create: {
+        userId: coachId,
+        role: Role.ADMIN,
+        assignedBy: coachId,
       },
-    });
+    },
+    cycles: {
+      create: [
+        {
+          startDate: new Date(),
+          endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+          status: "active",
+            updatedAt: new Date(), // ✅ required
+        },
+      ],
+    },
+  },
+});
+
 
     await logActivity(
       newGroup.id,
