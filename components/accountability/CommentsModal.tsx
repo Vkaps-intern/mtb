@@ -16,7 +16,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 type Comment = {
   id: string;
-  text: string;
+  content: string;
   createdAt: string;
   author: {
     name: string | null;
@@ -78,7 +78,7 @@ export default function CommentsModal({ goalId, isOpen, onOpenChange }: Comments
                   <p className="font-semibold">{comment.author.name}</p>
                   <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}</p>
                 </div>
-                <p className="text-sm text-foreground">{comment.text}</p>
+                <p className="text-sm text-foreground">{comment.content}</p>
               </div>
             </div>
           ))}

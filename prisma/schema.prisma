@@ -979,6 +979,7 @@ enum ProgressStage {
 }
 
 enum NotesPrivacy {
+  PUBLIC
   MEMBER_AND_ADMIN
   ADMIN_ONLY
 }
