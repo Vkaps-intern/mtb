@@ -359,10 +359,10 @@ const ManageStorePage: React.FC = () => {
                       <label className="block text-sm font-medium mb-1">Base Price *</label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         value={formData.basePrice}
-                        onChange={(e) => setFormData({ ...formData, basePrice: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) => setFormData({ ...formData, basePrice: parseInt(e.target.value) || 0 })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         required
                       />
@@ -371,10 +371,10 @@ const ManageStorePage: React.FC = () => {
                       <label className="block text-sm font-medium mb-1">Monthly Price</label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         value={formData.monthlyPrice}
-                        onChange={(e) => setFormData({ ...formData, monthlyPrice: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) => setFormData({ ...formData, monthlyPrice: parseInt(e.target.value) || 0 })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
@@ -382,10 +382,10 @@ const ManageStorePage: React.FC = () => {
                       <label className="block text-sm font-medium mb-1">Yearly Price</label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         value={formData.yearlyPrice}
-                        onChange={(e) => setFormData({ ...formData, yearlyPrice: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) => setFormData({ ...formData, yearlyPrice: parseInt(e.target.value) || 0 })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
@@ -393,10 +393,10 @@ const ManageStorePage: React.FC = () => {
                       <label className="block text-sm font-medium mb-1">Lifetime Price</label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         value={formData.lifetimePrice}
-                        onChange={(e) => setFormData({ ...formData, lifetimePrice: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) => setFormData({ ...formData, lifetimePrice: parseInt(e.target.value) || 0 })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>

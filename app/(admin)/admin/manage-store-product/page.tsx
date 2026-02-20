@@ -169,7 +169,6 @@ export default function ProductManagement() {
     },
     onSuccess: (response) => {
       console.log("✅ Approve response:", response.data);
-      // Only invalidate once - this will trigger a refetch automatically
       queryClient.invalidateQueries({ queryKey: ["items"] });
       toast.success("Item approved successfully!");
     },
@@ -187,7 +186,6 @@ export default function ProductManagement() {
     },
     onSuccess: (response) => {
       console.log("✅ Disapprove response:", response.data);
-      // Only invalidate once - this will trigger a refetch automatically
       queryClient.invalidateQueries({ queryKey: ["items"] });
       toast.success("Item disapproved successfully!");
     },
@@ -376,13 +374,13 @@ export default function ProductManagement() {
                   <label className="block text-sm font-medium mb-1">Base Price *</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
                     value={formData.basePrice}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        basePrice: parseFloat(e.target.value) || 0,
+                        basePrice: parseInt(e.target.value) || 0,
                       })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -393,13 +391,13 @@ export default function ProductManagement() {
                   <label className="block text-sm font-medium mb-1">Monthly Price</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
                     value={formData.monthlyPrice}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        monthlyPrice: parseFloat(e.target.value) || 0,
+                        monthlyPrice: parseInt(e.target.value) || 0,
                       })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -409,13 +407,13 @@ export default function ProductManagement() {
                   <label className="block text-sm font-medium mb-1">Yearly Price</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
                     value={formData.yearlyPrice}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        yearlyPrice: parseFloat(e.target.value) || 0,
+                        yearlyPrice: parseInt(e.target.value) || 0,
                       })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -425,13 +423,13 @@ export default function ProductManagement() {
                   <label className="block text-sm font-medium mb-1">Lifetime Price</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
                     value={formData.lifetimePrice}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        lifetimePrice: parseFloat(e.target.value) || 0,
+                        lifetimePrice: parseInt(e.target.value) || 0,
                       })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
